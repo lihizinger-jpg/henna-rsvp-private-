@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
+import * as XLSX from 'xlsx'
 import * as db from '@/lib/db'
 import { generateToken } from '@/lib/utils'
 

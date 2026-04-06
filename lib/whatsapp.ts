@@ -72,12 +72,17 @@ function getChromePath(): string | undefined {
 }
 
 function cleanStaleLocks() {
-  const sessionDir = path.resolve(process.env.WA_SESSION_PATH ?? '.wwebjs_auth', 'session')
-  for (const f of ['SingletonLock', 'SingletonCookie', 'SingletonSocket']) {
-    const p = path.join(sessionDir, f)
-    try { if (existsSync(p)) { rmSync(p); console.log('[WhatsApp] Removed stale lock:', f) } } catch {}
+  const waPath = path.resolve(process.env.WA_SESSION_PATH ?? '.wwebjs_auth')
+  const sessionDir = path.join(waPath, 'session')
+  // Clean locks in all possible locations
+  const dirsToCheck = [sessionDir, waPath]
+  for (const dir of dirsToCheck) {
+    for (const f of ['SingletonLock', 'SingletonCookie', 'SingletonSocket']) {
+      const p = path.join(dir, f)
+      try { if (existsSync(p)) { rmSync(p); console.log('[WhatsApp] Removed stale lock:', p) } } catch {}
+    }
   }
-  // Remove LevelDB lock that gets stuck when Chrome exits uncleanly
+  // Remove LevelDB lock
   const leveldbLock = path.join(sessionDir, 'Default', 'IndexedDB', 'https_web.whatsapp.com_0.indexeddb.leveldb', 'LOCK')
   try { if (existsSync(leveldbLock)) { rmSync(leveldbLock); console.log('[WhatsApp] Removed stale LevelDB LOCK') } } catch {}
 }

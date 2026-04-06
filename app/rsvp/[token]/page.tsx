@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { notFound } from 'next/navigation'
 import { findGuestByToken, getSettings } from '@/lib/db'
 import RSVPButtons from './RSVPButtons'

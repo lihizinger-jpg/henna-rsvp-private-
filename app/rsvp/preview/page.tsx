@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { getSettings } from '@/lib/db'
 import RSVPButtons from '../[token]/RSVPButtons'
 

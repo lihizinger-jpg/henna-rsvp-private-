@@ -589,7 +589,7 @@ function MessagesTab({ wa, settings, guests, sending, sendResult, onConnect, onD
             placeholder="שם לדוגמה (רשות)"
             value={testName}
             onChange={e => setTestName(e.target.value)}
-            className="flex-1 border border-stone-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#7c1d2d]/20 focus:border-[#7c1d2d]"
+            className="flex-1 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-800 outline-none focus:ring-2 focus:ring-[#7c1d2d]/20 focus:border-[#7c1d2d]"
           />
         </div>
         <div className="flex gap-2">
@@ -598,7 +598,7 @@ function MessagesTab({ wa, settings, guests, sending, sendResult, onConnect, onD
             placeholder="0501234567"
             value={testPhone}
             onChange={e => setTestPhone(e.target.value)}
-            className="flex-1 border border-stone-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#7c1d2d]/20 focus:border-[#7c1d2d]"
+            className="flex-1 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-800 outline-none focus:ring-2 focus:ring-[#7c1d2d]/20 focus:border-[#7c1d2d]"
           />
           <button
             onClick={sendTest}

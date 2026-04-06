@@ -22,6 +22,13 @@ export async function POST(request: Request) {
     rsvp_link: `${baseUrl}/rsvp/preview`,
   })
 
-  await sendWhatsAppMessage(phone.trim(), message)
-  return NextResponse.json({ ok: true })
+  try {
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Send timeout after 90s')), 90000)
+    )
+    await Promise.race([sendWhatsAppMessage(phone.trim(), message), timeout])
+    return NextResponse.json({ ok: true })
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 })
+  }
 }

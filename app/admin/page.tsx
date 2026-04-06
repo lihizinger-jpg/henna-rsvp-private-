@@ -465,12 +465,20 @@ function MessagesTab({ wa, settings, guests, sending, sendResult, onConnect, onD
   async function sendTest() {
     if (!testPhone.trim()) return
     setTestState('sending')
-    const res = await fetch('/api/send-test', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: testPhone, name: testName }),
-    })
-    setTestState(res.ok ? 'ok' : 'error')
+    try {
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), 95000)
+      const res = await fetch('/api/send-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: testPhone, name: testName }),
+        signal: controller.signal,
+      })
+      clearTimeout(timer)
+      setTestState(res.ok ? 'ok' : 'error')
+    } catch {
+      setTestState('error')
+    }
     setTimeout(() => setTestState('idle'), 3000)
   }
 

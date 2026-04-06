@@ -98,6 +98,7 @@ export async function initWhatsApp(): Promise<void> {
     puppeteer: {
       headless: true,
       executablePath: getChromePath(),
+      protocolTimeout: 120000,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',

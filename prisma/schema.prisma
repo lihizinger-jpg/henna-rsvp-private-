@@ -1,0 +1,34 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Guest {
+  id            String    @id @default(cuid())
+  name          String
+  phone         String
+  token         String    @unique
+  rsvpStatus    String?   // "attending" | "not_attending"
+  rsvpAt        DateTime?
+  messageSent   Boolean   @default(false)
+  messageSentAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Settings {
+  id              String @id @default("default")
+  eventName       String @default("Henna Night")
+  eventDate       String @default("Saturday, May 2nd 2026")
+  eventTime       String @default("7:00 PM")
+  eventLocation   String @default("")
+  hostName        String @default("Lihi")
+  messageTemplate String @default("Hi {name}! 🌿\n\nYou are warmly invited to {host_name}'s Henna Night! 🎉\n\n📅 {date}\n⏰ {time}\n📍 {location}\n\nPlease let us know if you'll be joining us:\n{rsvp_link} 💛")
+  primaryColor    String @default("#7c1d2d")
+  accentColor     String @default("#d4af37")
+  bgColor         String @default("#fdf6e3")
+}

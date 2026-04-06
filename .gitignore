@@ -1,0 +1,22 @@
+# Next.js
+.next/
+out/
+node_modules/
+
+# Database
+*.db
+*.db-journal
+
+# WhatsApp session (contains your auth tokens — never commit!)
+.wwebjs_auth/
+.wwebjs_cache/
+
+# Env
+.env
+.env.local
+
+# OS
+.DS_Store
+
+# Test files
+test-chrome.mjs

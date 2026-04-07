@@ -85,7 +85,7 @@ export default function RSVPButtons({ token, primaryColor, accentColor }: Props)
       <div className="text-center py-4 animate-fade-in">
         <div className="text-5xl mb-4">{attending ? '🎉' : '💌'}</div>
         <h2 className="font-serif text-xl font-semibold mb-2" style={{ color: primaryColor }}>
-          {attending ? `מגיעים! ${partySize > 1 ? `${partySize} אנשים` : ''}` : "נתראה בפעם הבאה!"}
+          {attending ? `מגיעים! ${partySize > 1 ? `${partySize} אנשים` : ''}` : "נתראה בחתונה!"}
         </h2>
         <p className="text-gray-500 text-sm">
           {attending

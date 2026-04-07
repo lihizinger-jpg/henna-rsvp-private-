@@ -74,17 +74,23 @@ function getChromePath(): string | undefined {
 function cleanStaleLocks() {
   const waPath = path.resolve(process.env.WA_SESSION_PATH ?? '.wwebjs_auth')
   const sessionDir = path.join(waPath, 'session')
-  // Clean locks in all possible locations
-  const dirsToCheck = [sessionDir, waPath]
+  // Aggressively remove all singleton and leveldb locks in the entire WA directory
+  const dirsToCheck = [waPath, sessionDir]
   for (const dir of dirsToCheck) {
     for (const f of ['SingletonLock', 'SingletonCookie', 'SingletonSocket']) {
       const p = path.join(dir, f)
-      try { if (existsSync(p)) { rmSync(p); console.log('[WhatsApp] Removed stale lock:', p) } } catch {}
+      try { rmSync(p, { force: true }); console.log('[WhatsApp] Cleaned lock:', p) } catch {}
     }
   }
+  // Recursively find and delete any remaining SingletonLock files
+  try {
+    const { execSync } = require('child_process') as typeof import('child_process')
+    execSync(`find "${waPath}" -name "SingletonLock" -o -name "SingletonCookie" -o -name "SingletonSocket" 2>/dev/null | xargs rm -f 2>/dev/null || true`)
+    console.log('[WhatsApp] Recursive lock cleanup done')
+  } catch {}
   // Remove LevelDB lock
   const leveldbLock = path.join(sessionDir, 'Default', 'IndexedDB', 'https_web.whatsapp.com_0.indexeddb.leveldb', 'LOCK')
-  try { if (existsSync(leveldbLock)) { rmSync(leveldbLock); console.log('[WhatsApp] Removed stale LevelDB LOCK') } } catch {}
+  try { rmSync(leveldbLock, { force: true }); console.log('[WhatsApp] Removed stale LevelDB LOCK') } catch {}
 }
 
 export async function initWhatsApp(): Promise<void> {

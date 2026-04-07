@@ -34,13 +34,10 @@ export default async function RSVPPreviewPage({ searchParams }: { searchParams: 
             style={{ border: `2px solid ${settings.accentColor}` }}>
 
             <div className="px-8 py-6 text-center" style={{ backgroundColor: settings.primaryColor }}>
-              <p className="text-xs uppercase tracking-[0.25em] mb-2" style={{ color: settings.accentColor }}>
-                הנכם מוזמנים
-              </p>
-              <h1 className="font-serif text-3xl font-bold text-white leading-tight">
-                {settings.eventName}
+              <h1 className="text-2xl font-bold text-white leading-tight">
+                הנכם מוזמנים ל{settings.eventName}
               </h1>
-              <p className="mt-1 text-sm text-white/70">בהזמנת {settings.hostName}</p>
+              <p className="mt-1 text-sm text-white/70">של {settings.hostName}</p>
             </div>
 
             <div className="px-8 py-7 bg-white">

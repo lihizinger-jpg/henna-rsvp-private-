@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    serverComponentsExternalPackages: ['whatsapp-web.js', 'puppeteer'],
+    serverComponentsExternalPackages: ['@whiskeysockets/baileys', 'pino', '@hapi/boom'],
   },
   webpack: (config) => {
     config.externals = config.externals || []

@@ -1,6 +1,5 @@
-import { Client, LocalAuth } from 'whatsapp-web.js'
 import { EventEmitter } from 'events'
-import { existsSync, rmSync } from 'fs'
+import { existsSync, mkdirSync } from 'fs'
 import path from 'path'
 import { formatPhoneForWhatsApp } from './utils'
 
@@ -8,7 +7,7 @@ export type WAStatus = 'disconnected' | 'loading' | 'qr_pending' | 'connected'
 
 declare global {
   // eslint-disable-next-line no-var
-  var _waClient: Client | undefined
+  var _waSocket: import('@whiskeysockets/baileys').WASocket | undefined
   // eslint-disable-next-line no-var
   var _waStatus: WAStatus
   // eslint-disable-next-line no-var
@@ -38,168 +37,118 @@ export function getStatus() {
   }
 }
 
-function getChromePath(): string | undefined {
-  // 1. Explicit env var (set on Railway)
-  if (process.env.PUPPETEER_EXECUTABLE_PATH && existsSync(process.env.PUPPETEER_EXECUTABLE_PATH)) {
-    console.log('[WhatsApp] Using PUPPETEER_EXECUTABLE_PATH:', process.env.PUPPETEER_EXECUTABLE_PATH)
-    return process.env.PUPPETEER_EXECUTABLE_PATH
-  }
-  // 2. Puppeteer's dedicated cached Chromium
-  const puppeteerCache = path.join(process.env.HOME ?? '', '.cache', 'puppeteer', 'chrome')
-  if (existsSync(puppeteerCache)) {
-    try {
-      const { readdirSync } = require('fs') as typeof import('fs')
-      for (const version of readdirSync(puppeteerCache)) {
-        const p = path.join(puppeteerCache, version, 'chrome-mac-arm64', 'Google Chrome for Testing.app', 'Contents', 'MacOS', 'Google Chrome for Testing')
-        const p2 = path.join(puppeteerCache, version, 'chrome-linux', 'chrome')
-        if (existsSync(p))  { console.log('[WhatsApp] Using puppeteer cache:', p);  return p }
-        if (existsSync(p2)) { console.log('[WhatsApp] Using puppeteer cache:', p2); return p2 }
-      }
-    } catch {}
-  }
-  // 3. System browsers (macOS + Linux)
-  const candidates = [
-    '/run/current-system/sw/bin/chromium',
-    '/usr/bin/chromium',
-    '/usr/bin/chromium-browser',
-    '/usr/bin/google-chrome',
-    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-    '/Applications/Chromium.app/Contents/MacOS/Chromium',
-  ]
-  const found = candidates.find(p => existsSync(p))
-  if (found) console.log('[WhatsApp] Using system Chrome:', found)
-  return found
-}
-
-function cleanStaleLocks() {
-  const waPath = path.resolve(process.env.WA_SESSION_PATH ?? '.wwebjs_auth')
-  const sessionDir = path.join(waPath, 'session')
-  // Aggressively remove all singleton and leveldb locks in the entire WA directory
-  const dirsToCheck = [waPath, sessionDir]
-  for (const dir of dirsToCheck) {
-    for (const f of ['SingletonLock', 'SingletonCookie', 'SingletonSocket']) {
-      const p = path.join(dir, f)
-      try { rmSync(p, { force: true }); console.log('[WhatsApp] Cleaned lock:', p) } catch {}
-    }
-  }
-  // Recursively find and delete any remaining SingletonLock files
-  try {
-    const { execSync } = require('child_process') as typeof import('child_process')
-    execSync(`find "${waPath}" -name "SingletonLock" -o -name "SingletonCookie" -o -name "SingletonSocket" 2>/dev/null | xargs rm -f 2>/dev/null || true`)
-    console.log('[WhatsApp] Recursive lock cleanup done')
-  } catch {}
-  // Remove LevelDB lock
-  const leveldbLock = path.join(sessionDir, 'Default', 'IndexedDB', 'https_web.whatsapp.com_0.indexeddb.leveldb', 'LOCK')
-  try { rmSync(leveldbLock, { force: true }); console.log('[WhatsApp] Removed stale LevelDB LOCK') } catch {}
+function getSessionPath() {
+  return path.resolve(process.env.WA_SESSION_PATH ?? '.baileys_auth')
 }
 
 export async function initWhatsApp(): Promise<void> {
-  if (global._waClient) return
+  if (global._waSocket) return
 
   global._waStatus = 'loading'
   global._waError  = undefined
   waEmitter.emit('status', 'loading')
 
-  cleanStaleLocks()
+  try {
+    const {
+      default: makeWASocket,
+      useMultiFileAuthState,
+      DisconnectReason,
+      fetchLatestBaileysVersion,
+    } = await import('@whiskeysockets/baileys')
+    const { Boom } = await import('@hapi/boom')
+    const pino = (await import('pino')).default
 
-  const client = new Client({
-    authStrategy: new LocalAuth({
-      dataPath: process.env.WA_SESSION_PATH ?? '.wwebjs_auth',
-    }),
-    puppeteer: {
-      headless: true,
-      executablePath: getChromePath(),
-      protocolTimeout: 180000,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--disable-gpu',
-        '--disable-extensions',
-        '--disable-background-networking',
-        '--disable-default-apps',
-        '--disable-sync',
-        '--disable-translate',
-        '--hide-scrollbars',
-        '--mute-audio',
-        '--safebrowsing-disable-auto-update',
-      ],
-    },
-  })
+    const sessionPath = getSessionPath()
+    if (!existsSync(sessionPath)) mkdirSync(sessionPath, { recursive: true })
 
-  client.on('qr', (qr: string) => {
-    console.log('[WhatsApp] QR code received')
-    global._waStatus = 'qr_pending'
-    global._waQR     = qr
-    global._waError  = undefined
-    waEmitter.emit('qr', qr)
-    waEmitter.emit('status', 'qr_pending')
-  })
+    const { state, saveCreds } = await useMultiFileAuthState(sessionPath)
+    const { version } = await fetchLatestBaileysVersion()
 
-  client.on('ready', () => {
-    console.log('[WhatsApp] Ready! Phone:', (client.info as { wid?: { user?: string } })?.wid?.user)
-    global._waStatus = 'connected'
-    global._waQR     = undefined
-    global._waError  = undefined
-    global._waPhone  = (client.info as { wid?: { user?: string } })?.wid?.user
-    waEmitter.emit('status', 'connected')
-  })
+    const sock = makeWASocket({
+      version,
+      auth: state,
+      logger: pino({ level: 'silent' }),
+      printQRInTerminal: false,
+      browser: ['Henna RSVP', 'Chrome', '1.0.0'],
+    })
 
-  client.on('loading_screen', (percent: number, message: string) => {
-    console.log(`[WhatsApp] Loading ${percent}% — ${message}`)
-  })
+    global._waSocket = sock
 
-  client.on('authenticated', () => {
-    console.log('[WhatsApp] Authenticated')
-  })
+    sock.ev.on('creds.update', saveCreds)
 
-  client.on('disconnected', () => {
-    global._waStatus = 'disconnected'
-    global._waPhone  = undefined
-    global._waQR     = undefined
-    global._waClient = undefined
-    waEmitter.emit('status', 'disconnected')
-  })
+    sock.ev.on('connection.update', (update) => {
+      const { connection, lastDisconnect, qr } = update
 
-  client.on('auth_failure', () => {
-    global._waStatus = 'disconnected'
-    global._waError  = 'Auth failed — נסי להתחבר שוב'
-    global._waQR     = undefined
-    global._waClient = undefined
-    waEmitter.emit('status', 'disconnected')
-  })
+      if (qr) {
+        console.log('[WhatsApp] QR code received')
+        global._waStatus = 'qr_pending'
+        global._waQR     = qr
+        global._waError  = undefined
+        waEmitter.emit('qr', qr)
+        waEmitter.emit('status', 'qr_pending')
+      }
 
-  global._waClient = client
+      if (connection === 'open') {
+        const phone = sock.user?.id?.split(':')[0] ?? sock.user?.id
+        console.log('[WhatsApp] Ready! Phone:', phone)
+        global._waStatus = 'connected'
+        global._waQR     = undefined
+        global._waError  = undefined
+        global._waPhone  = phone
+        waEmitter.emit('status', 'connected')
+      }
 
-  client.initialize().catch((err: unknown) => {
+      if (connection === 'close') {
+        const statusCode = (lastDisconnect?.error as InstanceType<typeof Boom>)?.output?.statusCode
+        const shouldReconnect = statusCode !== DisconnectReason.loggedOut
+
+        console.log('[WhatsApp] Connection closed. Status code:', statusCode, 'Reconnect:', shouldReconnect)
+
+        global._waSocket = undefined
+        global._waStatus = 'disconnected'
+        global._waPhone  = undefined
+        global._waQR     = undefined
+
+        if (!shouldReconnect) {
+          global._waError = 'Logged out — please reconnect'
+          waEmitter.emit('status', 'disconnected')
+        } else {
+          // Auto-reconnect
+          setTimeout(() => {
+            console.log('[WhatsApp] Auto-reconnecting...')
+            initWhatsApp().catch(console.error)
+          }, 3000)
+          waEmitter.emit('status', 'disconnected')
+        }
+      }
+    })
+  } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[WhatsApp] initialization error:', msg)
     global._waStatus = 'disconnected'
     global._waError  = msg
-    global._waClient = undefined
+    global._waSocket = undefined
     waEmitter.emit('status', 'disconnected')
-  })
+  }
 }
 
 export async function sendWhatsAppMessage(phone: string, message: string): Promise<void> {
-  if (!global._waClient || global._waStatus !== 'connected') {
+  if (!global._waSocket || global._waStatus !== 'connected') {
     throw new Error('WhatsApp is not connected')
   }
   const formatted = formatPhoneForWhatsApp(phone)
-  await global._waClient.sendMessage(formatted, message)
+  await global._waSocket.sendMessage(formatted, { text: message })
 }
 
 export async function disconnectWhatsApp(): Promise<void> {
-  if (global._waClient) {
-    try { await global._waClient.destroy() } catch {}
+  if (global._waSocket) {
+    try { await global._waSocket.logout() } catch {}
+    try { await global._waSocket.end(undefined) } catch {}
   }
-  global._waClient = undefined
+  global._waSocket = undefined
   global._waStatus = 'disconnected'
   global._waPhone  = undefined
   global._waQR     = undefined
   global._waError  = undefined
-  cleanStaleLocks()
   waEmitter.emit('status', 'disconnected')
 }

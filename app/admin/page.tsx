@@ -467,7 +467,7 @@ function MessagesTab({ wa, settings, guests, sending, sendResult, onConnect, onD
     setTestState('sending')
     try {
       const controller = new AbortController()
-      const timer = setTimeout(() => controller.abort(), 95000)
+      const timer = setTimeout(() => controller.abort(), 210000)
       const res = await fetch('/api/send-test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

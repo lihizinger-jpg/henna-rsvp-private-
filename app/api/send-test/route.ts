@@ -24,7 +24,7 @@ export async function POST(request: Request) {
 
   try {
     const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Send timeout after 90s')), 90000)
+      setTimeout(() => reject(new Error('Send timeout after 3min')), 180000)
     )
     await Promise.race([sendWhatsAppMessage(phone.trim(), message), timeout])
     return NextResponse.json({ ok: true })

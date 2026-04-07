@@ -37,7 +37,7 @@ export default async function RSVPPage({ params }: { params: { token: string } }
 
             {/* Body */}
             <div className="px-8 py-7 bg-white">
-              <p className="text-lg text-center mb-6" style={{ color: settings.primaryColor }}>
+              <p className="text-lg text-center mb-6" dir="rtl" style={{ color: settings.primaryColor }}>
                 <span className="font-semibold">{guest.name}</span>,
               </p>
 
@@ -104,7 +104,7 @@ function AlreadyResponded({ status, primaryColor, accentColor }: { status: strin
         style={{ backgroundColor: attending ? '#dcfce7' : '#fee2e2' }}>
         {attending ? '🎉' : '💌'}
       </div>
-      <h2 className="font-serif text-xl font-semibold mb-2" style={{ color: primaryColor }}>
+      <h2 className="text-xl font-semibold mb-2" dir="rtl" style={{ color: primaryColor }}>
         {attending ? 'מחכים לראותכם!' : 'נתראה בחתונה!'}
       </h2>
       <p className="text-gray-500 text-sm">

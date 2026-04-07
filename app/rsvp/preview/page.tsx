@@ -41,7 +41,7 @@ export default async function RSVPPreviewPage({ searchParams }: { searchParams: 
             </div>
 
             <div className="px-8 py-7 bg-white">
-              <p className="text-lg text-center mb-6" style={{ color: settings.primaryColor }}>
+              <p className="text-lg text-center mb-6" dir="rtl" style={{ color: settings.primaryColor }}>
                 <span className="font-semibold">{mockGuest.name}</span>,
               </p>
 

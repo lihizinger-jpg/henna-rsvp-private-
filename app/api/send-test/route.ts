@@ -29,6 +29,7 @@ export async function POST(request: Request) {
     await Promise.race([sendWhatsAppMessage(phone.trim(), message), timeout])
     return NextResponse.json({ ok: true })
   } catch (err) {
+    console.error('[send-test] Error:', String(err))
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }

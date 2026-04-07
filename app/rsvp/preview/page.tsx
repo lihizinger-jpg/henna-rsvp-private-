@@ -79,7 +79,7 @@ export default async function RSVPPreviewPage({ searchParams }: { searchParams: 
 
 function DetailRow({ icon, label, value, accent }: { icon: string; label: string; value: string; accent: string }) {
   return (
-    <div className="flex items-start gap-3">
+    <div className="flex items-start gap-3 flex-row-reverse text-right">
       <span className="text-xl leading-none mt-0.5">{icon}</span>
       <div>
         <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: accent }}>{label}</span>

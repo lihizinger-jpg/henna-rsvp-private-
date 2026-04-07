@@ -90,7 +90,7 @@ export default function RSVPButtons({ token, primaryColor, accentColor }: Props)
         <p className="text-gray-500 text-sm">
           {attending
             ? "תודה על האישור! מחכים לראותכם 💛"
-            : "תודה שהודעת לנו!"}
+            : "תודה שהודעת לנו"}
         </p>
       </div>
     )

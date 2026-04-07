@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     date: settings.eventDate,
     time: settings.eventTime,
     location: settings.eventLocation,
-    rsvp_link: `${baseUrl}/rsvp/preview`,
+    rsvp_link: `${baseUrl}/rsvp/preview?name=${encodeURIComponent(name?.trim() || 'שרה כהן')}`,
   })
 
   try {

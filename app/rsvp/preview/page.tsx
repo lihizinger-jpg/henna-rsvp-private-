@@ -3,10 +3,12 @@ export const dynamic = 'force-dynamic'
 import { getSettings } from '@/lib/db'
 import RSVPButtons from '../[token]/RSVPButtons'
 
-export default async function RSVPPreviewPage() {
+export default async function RSVPPreviewPage({ searchParams }: { searchParams: { name?: string } }) {
   const settings = getSettings()
+  const guestName = searchParams.name?.trim() || 'שרה כהן'
+  const isTest = !!searchParams.name
 
-  const mockGuest = { name: 'שרה כהן', token: 'preview' }
+  const mockGuest = { name: guestName, token: 'preview' }
 
   return (
     <>
@@ -14,9 +16,11 @@ export default async function RSVPPreviewPage() {
         body { background-color: ${settings.bgColor}; margin: 0; }
       `}</style>
 
-      <div className="fixed top-0 left-0 right-0 z-50 bg-amber-400 text-amber-900 text-center text-xs font-semibold py-2 px-4">
-        תצוגה מקדימה בלבד — כך האורחים יראו את הדף
-      </div>
+      {!isTest && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-amber-400 text-amber-900 text-center text-xs font-semibold py-2 px-4">
+          תצוגה מקדימה בלבד — כך האורחים יראו את הדף
+        </div>
+      )}
 
       <main className="min-h-screen flex items-center justify-center p-4 pt-12"
         style={{ backgroundColor: settings.bgColor }}>

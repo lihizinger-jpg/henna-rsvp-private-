@@ -105,7 +105,7 @@ function AlreadyResponded({ status, primaryColor, accentColor }: { status: strin
         {attending ? '🎉' : '💌'}
       </div>
       <h2 className="font-serif text-xl font-semibold mb-2" style={{ color: primaryColor }}>
-        {attending ? 'מחכים לראותכם!' : 'We\'ll miss you!'}
+        {attending ? 'מחכים לראותכם!' : 'נתראה בחתונה!'}
       </h2>
       <p className="text-gray-500 text-sm">
         {attending

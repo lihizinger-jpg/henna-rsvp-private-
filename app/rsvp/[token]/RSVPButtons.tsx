@@ -113,20 +113,20 @@ export default function RSVPButtons({ token, primaryColor, accentColor }: Props)
 
       <button
         onClick={() => setState('party_size')}
-        className="w-full py-4 rounded-xl text-white font-semibold text-base transition-all duration-200 hover:opacity-90 active:scale-95 shadow-md"
+        className="w-full py-4 rounded-xl text-white font-semibold text-base transition-all duration-200 hover:opacity-90 active:scale-95 shadow-md flex items-center justify-center gap-2"
         style={{ backgroundColor: primaryColor }}
         dir="rtl"
       >
-        <span className="ml-2">✓</span> כן, אני מגיע/ה!
+        <span>✓</span><span>כן, אני מגיע/ה!</span>
       </button>
 
       <button
         onClick={() => submit('not_attending')}
-        className="w-full py-4 rounded-xl font-semibold text-base transition-all duration-200 hover:opacity-90 active:scale-95 border-2"
+        className="w-full py-4 rounded-xl font-semibold text-base transition-all duration-200 hover:opacity-90 active:scale-95 border-2 flex items-center justify-center gap-2"
         style={{ borderColor: primaryColor + '50', color: primaryColor, backgroundColor: 'transparent' }}
         dir="rtl"
       >
-        <span className="ml-2">✗</span> לא אוכל להגיע
+        <span>✗</span><span>לא אוכל להגיע</span>
       </button>
     </div>
   )

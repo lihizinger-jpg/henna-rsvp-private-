@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   Users, MessageCircle, CheckCircle2, XCircle, Clock,
   Upload, Trash2, Send, Settings, Smartphone, RefreshCw,
-  Plus, Download, ExternalLink, LogOut, Loader2, AlertCircle,
+  Plus, Download, ExternalLink, LogOut, Loader2, AlertCircle, Pencil,
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -125,8 +125,16 @@ export default function AdminPage() {
     await fetchGuests()
   }
 
-  async function deleteGuest(id: string) {
-    if (!confirm('Remove this guest?')) return
+  async function updateGuestRsvp(id: string, status: string | null, partySize?: number) {
+    await fetch(`/api/guests/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rsvpStatus: status, partySize }),
+    })
+    await fetchGuests()
+  }
+
+  async function deleteGuest(id: string) {    if (!confirm('Remove this guest?')) return
     await fetch(`/api/guests/${id}`, { method: 'DELETE' })
     await fetchGuests()
   }
@@ -230,6 +238,7 @@ export default function AdminPage() {
           <GuestsTab
             guests={guests} fileRef={fileRef} baseUrl={baseUrl}
             onUpload={uploadExcel} onAdd={addSingleGuest} onDelete={deleteGuest} onDeleteAll={deleteAllGuests}
+            onRsvpUpdate={updateGuestRsvp}
           />
         )}
         {tab === 'messages' && (
@@ -334,14 +343,31 @@ function StatCard({ icon, label, value, color }: { icon: React.ReactNode; label:
 
 // ── Guests ────────────────────────────────────────────────────────────────────
 
-function GuestsTab({ guests, fileRef, baseUrl, onUpload, onAdd, onDelete, onDeleteAll }: {
+function GuestsTab({ guests, fileRef, baseUrl, onUpload, onAdd, onDelete, onDeleteAll, onRsvpUpdate }: {
   guests: Guest[]; fileRef: React.RefObject<HTMLInputElement>; baseUrl: string
   onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void
   onAdd: (e: React.FormEvent<HTMLFormElement>) => void
   onDelete: (id: string) => void
   onDeleteAll: () => void
+  onRsvpUpdate: (id: string, status: string | null, partySize?: number) => void
 }) {
   const [showAdd, setShowAdd] = useState(false)
+  const [editId, setEditId] = useState<string | null>(null)
+  const [editStatus, setEditStatus] = useState<string | null>(null)
+  const [editPartySize, setEditPartySize] = useState(1)
+
+  function startEdit(g: Guest) {
+    setEditId(g.id)
+    setEditStatus(g.rsvpStatus)
+    setEditPartySize(g.partySize ?? 1)
+  }
+
+  function cancelEdit() { setEditId(null) }
+
+  async function saveEdit(id: string) {
+    await onRsvpUpdate(id, editStatus, editStatus === 'attending' ? editPartySize : undefined)
+    setEditId(null)
+  }
 
   async function handleAdd(e: React.FormEvent<HTMLFormElement>) {
     await onAdd(e)
@@ -413,7 +439,42 @@ function GuestsTab({ guests, fileRef, baseUrl, onUpload, onAdd, onDelete, onDele
                   <tr key={g.id} className="hover:bg-stone-50">
                     <td className="px-4 py-3 font-medium text-stone-800">{g.name}</td>
                     <td className="px-4 py-3 text-stone-500 font-mono text-xs">{g.phone}</td>
-                    <td className="px-4 py-3">{badge(g.rsvpStatus)}</td>
+                    <td className="px-4 py-3">
+                      {editId === g.id ? (
+                        <div className="flex items-center gap-1 flex-wrap">
+                          <button
+                            onClick={() => setEditStatus('attending')}
+                            className={`px-2 py-1 rounded text-xs font-medium ${editStatus === 'attending' ? 'bg-green-600 text-white' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}>
+                            מגיע/ה
+                          </button>
+                          {editStatus === 'attending' && (
+                            <input
+                              type="number" min={1} max={30} value={editPartySize}
+                              onChange={e => setEditPartySize(Math.max(1, +e.target.value))}
+                              className="w-12 border border-stone-300 rounded px-1 py-0.5 text-xs text-center" />
+                          )}
+                          <button
+                            onClick={() => setEditStatus('not_attending')}
+                            className={`px-2 py-1 rounded text-xs font-medium ${editStatus === 'not_attending' ? 'bg-red-600 text-white' : 'bg-red-100 text-red-600 hover:bg-red-200'}`}>
+                            לא מגיע/ה
+                          </button>
+                          <button
+                            onClick={() => setEditStatus(null)}
+                            className={`px-2 py-1 rounded text-xs font-medium ${editStatus === null ? 'bg-stone-400 text-white' : 'bg-stone-100 text-stone-500 hover:bg-stone-200'}`}>
+                            ממתין/ה
+                          </button>
+                          <button onClick={() => saveEdit(g.id)} className="px-2 py-1 rounded text-xs font-medium bg-[#7c1d2d] text-white hover:opacity-90">שמור</button>
+                          <button onClick={cancelEdit} className="text-xs text-stone-400 hover:text-stone-600">ביטול</button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          {badge(g.rsvpStatus)}
+                          <button onClick={() => startEdit(g)} className="text-stone-300 hover:text-stone-500 transition-colors" title="עדכן ידנית">
+                            <Pencil size={12} />
+                          </button>
+                        </div>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-center">
                       {g.rsvpStatus === 'attending'
                         ? <span className="inline-flex items-center gap-1 text-xs font-semibold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">👥 {g.partySize ?? 1}</span>

@@ -99,6 +99,19 @@ export function deleteAllGuests(): void {
   getDb().exec('DELETE FROM Guest')
 }
 
+export function updateGuestRsvpById(id: string, status: string | null, partySize?: number): Guest | null {
+  const db = getDb()
+  const now = new Date().toISOString()
+  if (status === null) {
+    db.prepare("UPDATE Guest SET rsvpStatus = NULL, rsvpAt = NULL, partySize = NULL, updatedAt = ? WHERE id = ?")
+      .run(now, id)
+  } else {
+    db.prepare("UPDATE Guest SET rsvpStatus = ?, rsvpAt = ?, partySize = ?, updatedAt = ? WHERE id = ?")
+      .run(status, now, partySize ?? null, now, id)
+  }
+  return findGuestById(id)
+}
+
 export function updateGuestRsvp(token: string, status: string, partySize?: number): Guest | null {
   const db = getDb()
   const now = new Date().toISOString()

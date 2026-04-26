@@ -119,7 +119,10 @@ export async function initWhatsApp(): Promise<void> {
         global._waQR     = undefined
 
         if (!shouldReconnect) {
-          global._waError = 'Logged out — please reconnect'
+          // Session was rejected — wipe it so next connect shows a fresh QR
+          const sp = getSessionPath()
+          if (existsSync(sp)) rmSync(sp, { recursive: true, force: true })
+          global._waError = undefined
           waEmitter.emit('status', 'disconnected')
         } else {
           // Auto-reconnect

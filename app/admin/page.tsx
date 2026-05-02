@@ -670,7 +670,7 @@ function MessagesTab({ wa, settings, guests, sending, sendResult, sendingParking
           שלח לכל מי שאישר הגעה ({guests.filter(g => g.rsvpStatus === 'attending').length} אורחים) הודעה עם פרטי החניון ברחוב שלמה 4 (חצרות יפו).
         </p>
         <div className="bg-[#dcf8c6] rounded-2xl rounded-tl-sm px-4 py-3 max-w-sm text-sm text-stone-800 whitespace-pre-line shadow-sm font-sans mb-4 text-right" dir="rtl">
-          {`היי [שם]! 🌿\n\nאנחנו מתרגשים לפגוש אתכם הערב! 🎉\nהאירוע מתחיל בשעה 19:00 ⏰\n\nלידיעתכם, יש חניון לרשותכם ברחוב שלמה 4 (חצרות יפו).\nבכניסה תוכלו לקבל מדבקה של הנחה של 40 ש״ח 🅿️\n\n5 דקות הליכה מהמקום 🚶\n\nנפגש! 🩷`}
+          {`היי [שם]! 🌿✨\nאנחנו מתרגשים לפגוש אתכם הערב! 🎉💃\nהאירוע מתחיל בשעה 19:00 ⏰\nלנוחיותכם יש חניון ברחוב שלמה 4 (חצרות יפו) 🅿️\nבכניסה לאולם תקבלו מדבקת הנחה של 40 ש״ח לכרטיס החניה ✔️\nהחניון נמצא כ-5 דקות הליכה מהמקום 🚶‍♀️\nמחכים לראות אתכם! 🩷`}
         </div>
 
         {parkingResult && (

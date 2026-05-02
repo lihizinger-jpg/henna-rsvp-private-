@@ -173,14 +173,19 @@ export default function AdminPage() {
     await fetchGuests()
   }
 
-  async function sendParkingMessages() {
+  async function sendParkingMessages(guestIds: string[]) {
     setSendingParking(true)
     setParkingResult(null)
-    const res = await fetch('/api/send-parking', { method: 'POST' })
+    const res = await fetch('/api/send-parking', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ guestIds }),
+    })
     const data = await res.json()
     if (!res.ok) { alert(data.error ?? 'Failed to send'); setSendingParking(false); return }
     setParkingResult({ sent: data.sent, failed: data.failed })
     setSendingParking(false)
+    await fetchGuests()
   }
 
   async function saveSettings(e: React.FormEvent) {
@@ -531,13 +536,27 @@ function MessagesTab({ wa, settings, guests, sending, sendResult, sendingParking
   wa: WAStatus; settings: AppSettings; guests: Guest[]
   sending: boolean; sendResult: { sent: number; failed: number } | null
   sendingParking: boolean; parkingResult: { sent: number; failed: number } | null
-  onConnect: () => void; onDisconnect: () => void; onSend: () => void; onSendParking: () => void
+  onConnect: () => void; onDisconnect: () => void; onSend: () => void; onSendParking: (guestIds: string[]) => void
 }) {
   const pending = guests.filter(g => !g.messageSent).length
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
   const [testPhone, setTestPhone] = useState('')
   const [testName, setTestName] = useState('')
   const [testState, setTestState] = useState<'idle' | 'sending' | 'ok' | 'error'>('idle')
+  const attendingGuests = guests.filter(g => g.rsvpStatus === 'attending')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [showParkingList, setShowParkingList] = useState(false)
+
+  function toggleGuest(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  function selectAll() { setSelectedIds(new Set(attendingGuests.map(g => g.id))) }
+  function selectNone() { setSelectedIds(new Set()) }
 
   async function sendTest() {
     if (!testPhone.trim()) return
@@ -668,10 +687,43 @@ function MessagesTab({ wa, settings, guests, sending, sendResult, sendingParking
           🅿️ הודעת חניון
         </h3>
         <p className="text-xs text-stone-400 mb-3">
-          שלח לכל מי שאישר הגעה ועדיין לא קיבל את ההודעה ({guests.filter(g => g.rsvpStatus === 'attending' && !g.parkingMessageSent).length} אורחים).
+          שלח לאורחים שאישרו הגעה. בחרי למי לשלוח מהרשימה למטה.
         </p>
         <div className="bg-[#dcf8c6] rounded-2xl rounded-tl-sm px-4 py-3 max-w-sm text-sm text-stone-800 whitespace-pre-line shadow-sm font-sans mb-4 text-right" dir="rtl">
           {`היי [שם]! 🌿✨\nאנחנו מתרגשים לפגוש אתכם הערב! 🎉💃\nהאירוע מתחיל בשעה 19:00 ⏰\nלנוחיותכם יש חניון ברחוב שלמה 4 (חצרות יפו) 🅿️\nבכניסה לאולם תקבלו מדבקת הנחה של 40 ש״ח לכרטיס החניה ✔️\nהחניון נמצא כ-5 דקות הליכה מהמקום 🚶‍♀️\nמחכים לראות אתכם! 🩷`}
+        </div>
+
+        {/* Guest checklist */}
+        <div className="mb-4">
+          <button
+            onClick={() => setShowParkingList(v => !v)}
+            className="text-sm text-[#7c1d2d] hover:underline mb-2 flex items-center gap-1"
+          >
+            {showParkingList ? '▲' : '▼'} בחרי נמענים ({selectedIds.size} נבחרו מתוך {attendingGuests.length})
+          </button>
+          {showParkingList && (
+            <div className="border border-stone-200 rounded-lg overflow-hidden">
+              <div className="flex gap-3 px-3 py-2 bg-stone-50 border-b border-stone-200">
+                <button onClick={selectAll} className="text-xs text-[#7c1d2d] hover:underline">בחר הכל</button>
+                <button onClick={selectNone} className="text-xs text-stone-400 hover:underline">נקה הכל</button>
+              </div>
+              <div className="max-h-60 overflow-y-auto divide-y divide-stone-100">
+                {attendingGuests.map(g => (
+                  <label key={g.id} className="flex items-center gap-3 px-3 py-2 hover:bg-stone-50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(g.id)}
+                      onChange={() => toggleGuest(g.id)}
+                      className="accent-[#7c1d2d]"
+                    />
+                    <span className="text-sm text-stone-800 flex-1">{g.name}</span>
+                    <span className="text-xs text-stone-400 font-mono">{g.phone}</span>
+                    {g.parkingMessageSent && <span className="text-xs text-green-600">נשלח ✓</span>}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {parkingResult && (
@@ -682,14 +734,17 @@ function MessagesTab({ wa, settings, guests, sending, sendResult, sendingParking
         )}
 
         <button
-          onClick={onSendParking}
-          disabled={sendingParking || wa.status !== 'connected' || guests.filter(g => g.rsvpStatus === 'attending' && !g.parkingMessageSent).length === 0}
+          onClick={() => onSendParking(Array.from(selectedIds))}
+          disabled={sendingParking || wa.status !== 'connected' || selectedIds.size === 0}
           className="flex items-center gap-2 px-5 py-2.5 bg-[#7c1d2d] text-white rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {sendingParking
             ? <><Loader2 size={15} className="animate-spin" /> שולח…</>
-            : <><Send size={15} /> שלח ל-{guests.filter(g => g.rsvpStatus === 'attending' && !g.parkingMessageSent).length} אורחים</>}
+            : <><Send size={15} /> שלח ל-{selectedIds.size} אורחים</>}
         </button>
+        {selectedIds.size === 0 && !sendingParking && (
+          <p className="mt-2 text-xs text-stone-400">בחרי אורחים מהרשימה למעלה.</p>
+        )}
         {wa.status !== 'connected' && (
           <p className="mt-2 text-xs text-stone-400">חבר WhatsApp למעלה לפני השליחה.</p>
         )}

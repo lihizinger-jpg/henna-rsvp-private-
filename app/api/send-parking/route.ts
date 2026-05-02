@@ -10,13 +10,16 @@ const PARKING_MESSAGE = `היי {name}! 🌿✨
 החניון נמצא כ-5 דקות הליכה מהמקום 🚶‍♀️
 מחכים לראות אתכם! 🩷`
 
-export async function POST() {
+export async function POST(request: Request) {
+  const { guestIds }: { guestIds?: string[] } = await request.json().catch(() => ({}))
+
   const { status } = getStatus()
   if (status !== 'connected') {
     return NextResponse.json({ error: 'WhatsApp is not connected' }, { status: 400 })
   }
 
-  const guests = db.findGuests().filter(g => g.rsvpStatus === 'attending' && !g.parkingMessageSent)
+  const allGuests = db.findGuests().filter(g => g.rsvpStatus === 'attending')
+  const guests = guestIds ? allGuests.filter(g => guestIds.includes(g.id)) : allGuests.filter(g => !g.parkingMessageSent)
   const results: { name: string; success: boolean; error?: string }[] = []
 
   for (const guest of guests) {

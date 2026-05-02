@@ -62,6 +62,8 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true)
   const [sendResult, setSendResult] = useState<{ sent: number; failed: number } | null>(null)
   const [sending, setSending] = useState(false)
+  const [sendingParking, setSendingParking] = useState(false)
+  const [parkingResult, setParkingResult] = useState<{ sent: number; failed: number } | null>(null)
   const [settingsSaved, setSettingsSaved] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -170,6 +172,16 @@ export default function AdminPage() {
     await fetchGuests()
   }
 
+  async function sendParkingMessages() {
+    setSendingParking(true)
+    setParkingResult(null)
+    const res = await fetch('/api/send-parking', { method: 'POST' })
+    const data = await res.json()
+    if (!res.ok) { alert(data.error ?? 'Failed to send'); setSendingParking(false); return }
+    setParkingResult({ sent: data.sent, failed: data.failed })
+    setSendingParking(false)
+  }
+
   async function saveSettings(e: React.FormEvent) {
     e.preventDefault()
     await fetch('/api/settings', {
@@ -245,7 +257,9 @@ export default function AdminPage() {
           <MessagesTab
             wa={wa} settings={settings} guests={guests}
             sending={sending} sendResult={sendResult}
-            onConnect={connectWhatsApp} onDisconnect={disconnectWhatsApp} onSend={sendMessages}
+            sendingParking={sendingParking} parkingResult={parkingResult}
+            onConnect={connectWhatsApp} onDisconnect={disconnectWhatsApp}
+            onSend={sendMessages} onSendParking={sendParkingMessages}
           />
         )}
         {tab === 'design' && (
@@ -512,10 +526,11 @@ function GuestsTab({ guests, fileRef, baseUrl, onUpload, onAdd, onDelete, onDele
 
 // ── Messages ──────────────────────────────────────────────────────────────────
 
-function MessagesTab({ wa, settings, guests, sending, sendResult, onConnect, onDisconnect, onSend }: {
+function MessagesTab({ wa, settings, guests, sending, sendResult, sendingParking, parkingResult, onConnect, onDisconnect, onSend, onSendParking }: {
   wa: WAStatus; settings: AppSettings; guests: Guest[]
   sending: boolean; sendResult: { sent: number; failed: number } | null
-  onConnect: () => void; onDisconnect: () => void; onSend: () => void
+  sendingParking: boolean; parkingResult: { sent: number; failed: number } | null
+  onConnect: () => void; onDisconnect: () => void; onSend: () => void; onSendParking: () => void
 }) {
   const pending = guests.filter(g => !g.messageSent).length
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
@@ -643,6 +658,39 @@ function MessagesTab({ wa, settings, guests, sending, sendResult, onConnect, onD
 
         {wa.status !== 'connected' && (
           <p className="mt-2 text-xs text-stone-400">Connect WhatsApp above before sending.</p>
+        )}
+      </div>
+
+      {/* Parking notification */}
+      <div className="bg-white rounded-xl p-5 shadow-sm border border-stone-200">
+        <h3 className="font-semibold text-stone-700 mb-1 flex items-center gap-2">
+          🅿️ הודעת חניון
+        </h3>
+        <p className="text-xs text-stone-400 mb-3">
+          שלח לכל מי שאישר הגעה ({guests.filter(g => g.rsvpStatus === 'attending').length} אורחים) הודעה עם פרטי החניון ברחוב שלמה 4 (חצרות יפו).
+        </p>
+        <div className="bg-[#dcf8c6] rounded-2xl rounded-tl-sm px-4 py-3 max-w-sm text-sm text-stone-800 whitespace-pre-line shadow-sm font-sans mb-4 text-right" dir="rtl">
+          {`היי [שם]! 🌿\n\nאנחנו מתרגשים לפגוש אתכם הערב! 🎉\nהאירוע מתחיל בשעה 19:00 ⏰\n\nלידיעתכם, יש חניון לרשותכם ברחוב שלמה 4 (חצרות יפו).\nבכניסה תוכלו לקבל מדבקה של הנחה של 40 ש״ח 🅿️\n\n5 דקות הליכה מהמקום 🚶\n\nנפגש! 🩷`}
+        </div>
+
+        {parkingResult && (
+          <div className={`flex items-center gap-2 p-3 rounded-lg text-sm mb-4 ${parkingResult.failed ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-green-50 text-green-700 border border-green-200'}`}>
+            <CheckCircle2 size={15} />
+            {parkingResult.sent} נשלחו בהצלחה{parkingResult.failed ? `, ${parkingResult.failed} נכשלו` : ''}.
+          </div>
+        )}
+
+        <button
+          onClick={onSendParking}
+          disabled={sendingParking || wa.status !== 'connected' || guests.filter(g => g.rsvpStatus === 'attending').length === 0}
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#7c1d2d] text-white rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {sendingParking
+            ? <><Loader2 size={15} className="animate-spin" /> שולח…</>
+            : <><Send size={15} /> שלח ל-{guests.filter(g => g.rsvpStatus === 'attending').length} מאשרים</>}
+        </button>
+        {wa.status !== 'connected' && (
+          <p className="mt-2 text-xs text-stone-400">חבר WhatsApp למעלה לפני השליחה.</p>
         )}
       </div>
 

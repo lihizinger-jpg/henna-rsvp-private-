@@ -16,13 +16,14 @@ export async function POST() {
     return NextResponse.json({ error: 'WhatsApp is not connected' }, { status: 400 })
   }
 
-  const guests = db.findGuests().filter(g => g.rsvpStatus === 'attending')
+  const guests = db.findGuests().filter(g => g.rsvpStatus === 'attending' && !g.parkingMessageSent)
   const results: { name: string; success: boolean; error?: string }[] = []
 
   for (const guest of guests) {
     try {
       const message = PARKING_MESSAGE.replace('{name}', guest.name)
       await sendWhatsAppMessage(guest.phone, message)
+      db.markParkingMessageSent(guest.id)
       results.push({ name: guest.name, success: true })
       await new Promise(r => setTimeout(r, 1200))
     } catch (err) {

@@ -49,6 +49,8 @@ function migrate(db: DatabaseSync) {
   // Incremental migrations — safe to run on existing databases
   try { db.exec('ALTER TABLE Guest ADD COLUMN partySize INTEGER') } catch { /* already exists */ }
   try { db.exec("ALTER TABLE Settings ADD COLUMN baseUrl TEXT NOT NULL DEFAULT 'http://localhost:3000'") } catch { /* already exists */ }
+  try { db.exec('ALTER TABLE Guest ADD COLUMN parkingMessageSent INTEGER NOT NULL DEFAULT 0') } catch { /* already exists */ }
+  try { db.exec('ALTER TABLE Guest ADD COLUMN parkingMessageSentAt TEXT') } catch { /* already exists */ }
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -58,6 +60,7 @@ export interface Guest {
   rsvpStatus: string | null; rsvpAt: string | null
   partySize: number | null
   messageSent: boolean; messageSentAt: string | null
+  parkingMessageSent: boolean; parkingMessageSentAt: string | null
   createdAt: string; updatedAt: string
 }
 
@@ -126,6 +129,12 @@ export function markMessageSent(id: string): void {
   db.prepare("UPDATE Guest SET messageSent = 1, messageSentAt = ?, updatedAt = ? WHERE id = ?").run(now, now, id)
 }
 
+export function markParkingMessageSent(id: string): void {
+  const db = getDb()
+  const now = new Date().toISOString()
+  db.prepare("UPDATE Guest SET parkingMessageSent = 1, parkingMessageSentAt = ?, updatedAt = ? WHERE id = ?").run(now, now, id)
+}
+
 export function findUnsentGuests(): Guest[] {
   const db = getDb()
   const rows = db.prepare('SELECT * FROM Guest WHERE messageSent = 0 ORDER BY createdAt ASC').all() as Record<string, unknown>[]
@@ -165,5 +174,6 @@ function normalizeGuest(row: Record<string, unknown>): Guest {
   return {
     ...row,
     messageSent: row.messageSent === 1 || row.messageSent === true,
+    parkingMessageSent: row.parkingMessageSent === 1 || row.parkingMessageSent === true,
   } as Guest
 }

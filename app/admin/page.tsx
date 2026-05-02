@@ -19,6 +19,7 @@ interface Guest {
   partySize: number | null
   messageSent: boolean
   messageSentAt: string | null
+  parkingMessageSent: boolean
   createdAt: string
 }
 
@@ -667,7 +668,7 @@ function MessagesTab({ wa, settings, guests, sending, sendResult, sendingParking
           🅿️ הודעת חניון
         </h3>
         <p className="text-xs text-stone-400 mb-3">
-          שלח לכל מי שאישר הגעה ({guests.filter(g => g.rsvpStatus === 'attending').length} אורחים) הודעה עם פרטי החניון ברחוב שלמה 4 (חצרות יפו).
+          שלח לכל מי שאישר הגעה ועדיין לא קיבל את ההודעה ({guests.filter(g => g.rsvpStatus === 'attending' && !g.parkingMessageSent).length} אורחים).
         </p>
         <div className="bg-[#dcf8c6] rounded-2xl rounded-tl-sm px-4 py-3 max-w-sm text-sm text-stone-800 whitespace-pre-line shadow-sm font-sans mb-4 text-right" dir="rtl">
           {`היי [שם]! 🌿✨\nאנחנו מתרגשים לפגוש אתכם הערב! 🎉💃\nהאירוע מתחיל בשעה 19:00 ⏰\nלנוחיותכם יש חניון ברחוב שלמה 4 (חצרות יפו) 🅿️\nבכניסה לאולם תקבלו מדבקת הנחה של 40 ש״ח לכרטיס החניה ✔️\nהחניון נמצא כ-5 דקות הליכה מהמקום 🚶‍♀️\nמחכים לראות אתכם! 🩷`}
@@ -682,12 +683,12 @@ function MessagesTab({ wa, settings, guests, sending, sendResult, sendingParking
 
         <button
           onClick={onSendParking}
-          disabled={sendingParking || wa.status !== 'connected' || guests.filter(g => g.rsvpStatus === 'attending').length === 0}
+          disabled={sendingParking || wa.status !== 'connected' || guests.filter(g => g.rsvpStatus === 'attending' && !g.parkingMessageSent).length === 0}
           className="flex items-center gap-2 px-5 py-2.5 bg-[#7c1d2d] text-white rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {sendingParking
             ? <><Loader2 size={15} className="animate-spin" /> שולח…</>
-            : <><Send size={15} /> שלח ל-{guests.filter(g => g.rsvpStatus === 'attending').length} מאשרים</>}
+            : <><Send size={15} /> שלח ל-{guests.filter(g => g.rsvpStatus === 'attending' && !g.parkingMessageSent).length} אורחים</>}
         </button>
         {wa.status !== 'connected' && (
           <p className="mt-2 text-xs text-stone-400">חבר WhatsApp למעלה לפני השליחה.</p>
